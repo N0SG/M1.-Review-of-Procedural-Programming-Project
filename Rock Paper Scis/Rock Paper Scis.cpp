@@ -2,142 +2,101 @@
 //
 
 #include <iostream>
+#include <fstream>
 #include <string>
-#include <random>
+#include <iomanip>
 
 using namespace std;
 
-string getplayerchoice();
-string determineroundwinner(string computerchoice, string playerchoice);
-int updateplayerscore(string roundwinner, int playerscore);
-int updatecomputerscore(string roundwinner, int computerscore);
-void declarewinner(int playerscore, int computerscore);
+const int numoftests = 5;
+const int maxstudents = 20;
+
+int readDataFromFile(ifstream& file, string names[], int grades[][numoftests]);
+void calculateAverages(int numStudents, int grades[][numoftests], double averages[]);
+string getLetterGrade(double average);
+void gradereport(int numStudents, string names[], double averages[]);
 
 int main() {
-    random_device myEngine;
-    uniform_int_distribution<int> diceValue(1, 3);
+    string studentNames[maxstudents];
+    int studentScores[maxstudents][numoftests];
+    double studentAverages[maxstudents];
 
-    int playerscore = 0;
-    int computerscore = 0;
-    string playerchoice;
+    //Open da file
+    ifstream inputFile("StudentGrades.txt");
 
-    cout << "Welcome to Rock, Paper, Scissors!" << endl;
-    cout << "You will be facing off against Gizmo!" << endl;
-    cout << "Please enter 'rock', 'paper', or 'scissors' to play!" << endl;
-    cout << "If you want to stop please enter 'quit' at any time to end the game." << endl;
-
-	//What the choices are aka what do the numbers mean MASON
-    while (true) {
-        int computerNumber = diceValue(myEngine);
-        string computerchoice;
-
-        if (computerNumber == 1) {
-            computerchoice = "rock";
-        }
-        else if (computerNumber == 2) {
-            computerchoice = "paper";
-        }
-        else {
-            computerchoice = "scissors";
-        }
-
-        playerchoice = getplayerchoice();
-
-        if (playerchoice == "quit") {
-            cout << endl;
-            break;
-        }
-
-        cout << "Gizmo chose: " << computerchoice << endl;
-
-        string roundwinner = determineroundwinner(computerchoice, playerchoice);
-
-	// I couldn't think of a name for the computer so I named it Gizmo
-        playerscore = updateplayerscore(roundwinner, playerscore);
-        computerscore = updatecomputerscore(roundwinner, computerscore);
-
-        cout << "Your current score is: " << playerscore << endl;
-		cout << "Gizmo's score is: " << computerscore << endl;
-        cout << endl;
+    if (!inputFile) {
+        cout << "Error with opening the file! Please make sure its in the same folder." << endl;
+        return 1;
     }
 
-    declarewinner(playerscore, computerscore);
+    //Reads the data and sets variables
+    int numStudents = readDataFromFile(inputFile, studentNames, studentScores);
+    calculateAverages(numStudents, studentScores, studentAverages);
+    gradereport(numStudents, studentNames, studentAverages);
+
+    inputFile.close();
 
     return 0;
 }
-// Player's choice input and validation
-string getplayerchoice() {
-    string choice;
-    while (true) {
-        cout << "Please enter your choice: ";
-        cin >> choice;
 
-        for (char& c : choice) {
-            c = tolower(c);
+int readDataFromFile(ifstream& file, string names[], int grades[][numoftests]) {
+    int numofstudent = 0;
+    while (numofstudent < maxstudents && file >> names[numofstudent]) {
+        for (int i = 0; i < numoftests; ++i) {
+            file >> grades[numofstudent][i];
         }
+        numofstudent++;
+    }
+    return numofstudent;
+}
 
-        if (choice == "rock" || choice == "paper" || choice == "scissors" || choice == "quit") {
-            return choice;
+void calculateAverages(int numStudents, int grades[][numoftests], double averages[]) {
+    for (int i = 0; i < numStudents; ++i) {
+        int sum = 0;
+        for (int j = 0; j < numoftests; ++j) {
+            sum += grades[i][j];
         }
-        else {
-            cout << "Invalid input please enter rock, paper, scissors, or quit." << endl;
-// Clear the errors I had to call my friend to help me with this part I completely forgot about it
-            cin.clear();
-            cin.ignore(1000, '\n');
-        }
+        averages[i] = static_cast<double>(sum) / numoftests;
     }
 }
-//Draw! 
-string determineroundwinner(string computerchoice, string playerchoice) {
-    if (computerchoice == playerchoice) {
-        cout << "It's a draw!" << endl;
-        return "draw";
-    }
 
-    if ((playerchoice == "rock" && computerchoice == "scissors") ||
-        (playerchoice == "scissors" && computerchoice == "paper") ||
-        (playerchoice == "paper" && computerchoice == "rock")) {
-        cout << "You win the round!" << endl;
-        return "human";
+string getLetterGrade(double average) {
+    if (average >= 90) {
+        return "A";
+    }
+    else if (average >= 80) {
+        return "B";
+    }
+    else if (average >= 70) {
+        return "C";
+    }
+    else if (average >= 60) {
+        return "D";
     }
     else {
-        cout << "Gizo wins this round!" << endl;
-        return "computer";
+        return "F";
     }
 }
 
-// player's score tracker
-int updateplayerscore(string roundwinner, int playerscore) {
-    if (roundwinner == "human") {
-        return playerscore + 1;
+//Spits out the report
+void gradereport(int numStudents, string names[], double averages[]) {
+    cout << "------------------------------------------" << endl;
+    cout << "|             STUDENT GRADES             |" << endl;
+    cout << "|----------------------------------------|" << endl;
+    cout << left << setw(20) << "|Student Name" << setw(10) << "Average" << "Grade" << "      |" << endl;
+    cout << "|----------------------------------------|" << endl;
+
+    for (int i = 0; i < numStudents; ++i) {
+        string grade = getLetterGrade(averages[i]);
+        cout << "|" << setw(20) << names[i]
+            << fixed << setprecision(2) << setw(10) << averages[i]
+            << grade << setw(20) << "         |" << endl;
     }
-    return playerscore;
+
+    cout << "------------------------------------------" << endl;
 }
-
-// Gizmo's score tracker
-int updatecomputerscore(string roundwinner, int computerscore) {
-    if (roundwinner == "computer") {
-        return computerscore + 1;
-    }
-    return computerscore;
-}
-
-void declarewinner(int playerscore, int computerscore) {
-    cout << "Its over!" << endl;
-    cout << "The final scores are" << playerscore << " - " << computerscore << endl;
-
-
-    if (playerscore > computerscore) {
-        cout << "Congratulations! You won!" << endl;
-    }
-    else if (computerscore > playerscore) {
-        cout << "Gizmo wins this battle but not the war!" << endl;
-    }
-    else {
-        cout << "Draw!" << endl;
-    }
-}
-
+//Formatting the ascii table was a pain
+// 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
 // Debug program: F5 or Debug > Start Debugging menu
 
